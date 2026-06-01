@@ -1,0 +1,28 @@
+# ===== video2bug .gitignore =====
+# 把这个文件放在项目根目录（D:\sruixu\video2bug\.gitignore）
+
+# 处理产物
+output/
+
+# Python 编译缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# GUI 配置（**关键**：配置文件里可能含 API Key）
+.video2bug_gui_config.json
+
+# 系统 / IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+
+# 测试 / 临时文件
+test_videos/
+*.tmp
