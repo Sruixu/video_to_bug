@@ -15,6 +15,7 @@ video_to_bug_gui.py - video_to_bug 的图形界面
 import json
 import os
 import queue
+import re
 import sys
 import threading
 import time
@@ -281,14 +282,19 @@ class Video2BugApp:
         self.lbl_progress.config(text="等待开始")
 
     def _on_remove_selected(self):
+        """移除选中的文件。从 tags 读完整路径，不再用文件名匹配。"""
         if self.is_processing:
             messagebox.showwarning("提示", "处理进行中，无法移除")
             return
         selected = self.tree.selection()
+        paths_to_remove = set()
         for item in selected:
-            path = self.tree.item(item)["values"][0]
-            self.video_files = [p for p in self.video_files if str(p) != str(path)]
-        self._refresh_tree()
+            tags = self.tree.item(item, "tags")
+            if tags:
+                paths_to_remove.add(tags[0])
+        if paths_to_remove:
+            self.video_files = [p for p in self.video_files if p not in paths_to_remove]
+            self._refresh_tree()
 
     def _on_drop_window(self, event):
         """
@@ -297,17 +303,23 @@ class Video2BugApp:
         """
         if self.is_processing:
             return
-        # 解析拖入的数据
+        # 用正则解析拖入数据：tkinterdnd2 在 Windows 上格式为
+        #   "{file1 path with spaces}" "{file2}" "file3" ...
+        # 不能用 tk.splitlist（会把反斜杠当转义字符吃）
         data = event.data
-        # tkinterdnd2 返回的路径可能用 { } 包裹含空格的路径
-        if data.startswith("{") and data.endswith("}"):
-            data = data[1:-1]
-        # Windows 上用空格分隔多个路径
-        raw_paths = self.root.tk.splitlist(data)
+        # 优先提取所有 {...} 包裹的路径（处理多文件）
+        matches = re.findall(r'\{([^}]+)\}', data)
+        if matches:
+            raw_paths = matches
+        else:
+            # 没有 {} 包裹的，整段就是单个路径
+            raw_paths = [data.strip()]
 
         added = 0
-        for raw in raw_paths:
-            p = str(raw).strip('{}')
+        for p in raw_paths:
+            p = str(p).strip().strip('{}')
+            if not p:
+                continue
             if os.path.isdir(p):
                 # 拖入文件夹：递归扫描视频
                 videos = v2b.expand_video_inputs(p)
@@ -452,11 +464,18 @@ class Video2BugApp:
             self.tree.delete(item)
         for p in self.video_files:
             size_mb = os.path.getsize(p) / 1024 / 1024 if os.path.exists(p) else 0
-            self.tree.insert("", tk.END, values=(Path(p).name, f"{size_mb:.1f} MB", "待处理"))
+            item_id = self.tree.insert(
+                "", tk.END,
+                values=(Path(p).name, f"{size_mb:.1f} MB", "待处理"),
+                tags=(p,),  # 关键：把完整路径存到 tags 里
+            )
 
     def _update_tree_status(self, path, status):
+        """更新某文件的状态。用 tags 里的完整路径匹配，不再依赖文件名。"""
+        path_str = str(path)
         for item in self.tree.get_children():
-            if self.tree.item(item)["values"][0] == Path(str(path)).name:
+            tags = self.tree.item(item, "tags")
+            if tags and tags[0] == path_str:
                 values = list(self.tree.item(item)["values"])
                 values[2] = status
                 self.tree.item(item, values=values)
