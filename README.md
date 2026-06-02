@@ -118,13 +118,14 @@ pip install imageio-ffmpeg imageio
 
 ### mavis CLI + matrix MCP
 
-一般是 MiniMax 用户的标配。验证方式：
-```powershell
-mavis --version
-mavis mcp ls
-```
+mavis 是 MiniMax 官方的 CLI 工具（自带 matrix MCP 服务）。
 
-如果没装，请联系 MiniMax 内部获取 mavis 安装包（这是 MiniMax 内部工具链，没有公开 GitHub 仓库）。
+1. **下载安装**：打开 [MiniMax 官方下载页](https://agent.minimaxi.com/download)，下载并安装 mavis
+2. **验证装好**：
+   ```powershell
+   mavis --version
+   mavis mcp ls   # 应该看到 matrix 服务，状态 authenticated
+   ```
 
 ---
 
