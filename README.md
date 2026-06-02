@@ -11,17 +11,15 @@
 ## 快速开始（3 步）
 
 ```powershell
-# 1. 装依赖（一次性）
+# 1. 下载并安装 mavis
+#    打开 https://agent.minimaxi.com/download 下载安装包，装好即可
+#    mavis 自带 matrix MCP 服务，不用单独配
+
+# 2. 装 Python 依赖（一次性）
 pip install imageio-ffmpeg imageio
 
-# 2. 确认本机 mavis MCP 服务已就绪
-mavis --version
-mavis mcp ls   # 应该看到 matrix 服务，状态 authenticated
-
 # 3. 启动 GUI
-D:\sruixu\video2bug\video_to_bug_gui.bat
-# 或命令行
-python D:\sruixu\video2bug\video_to_bug_gui.py
+D:\sruixu\video_to_bug\video_to_bug_gui.bat
 ```
 
 **GUI 使用**：
@@ -31,27 +29,9 @@ python D:\sruixu\video2bug\video_to_bug_gui.py
 
 ---
 
-## 工作原理
+## 验证 mavis 装好没
 
-工具调用本机 `mavis` CLI → `matrix` MCP 服务的 `videos_understand` 工具分析视频，AI 看完整段录屏后输出结构化 BUG 单。
-
-**前置条件**：
-- 本机已装 `mavis` CLI
-- `mavis` 已配置 `matrix` MCP 服务
-- Python 3.10+
-- 已 `pip install imageio-ffmpeg imageio`
-
-**为什么走 MCP**：
-- ✅ **零额外配置** — 复用本机 mavis 服务
-- ✅ **零外部成本** — 用你自己的 mavis/MiniMax 额度
-- ✅ **视频分析精度高** — matrix MCP 视频理解能力比通用视觉模型强
-- ✅ **完全离线运行** — 工具代码里没有任何外部密钥、token、账号
-
----
-
-## mavis MCP 配置
-
-### 检查 mavis 是否已配好
+装完 mavis 后，在 PowerShell 里跑：
 
 ```powershell
 mavis --version
@@ -61,14 +41,7 @@ mavis mcp ls
 # 应该看到 matrix 服务，状态 authenticated
 ```
 
-### 没装 matrix MCP？
-
-```powershell
-mavis mcp add matrix npx -y @MiniMax/matrix-mcp
-mavis mcp ls   # 验证装好了
-```
-
-如果你的 mavis 是 MiniMax 官方版本，**matrix MCP 一般默认装好**，直接用就行。
+如果 `mavis` 命令找不到，把 `C:\Users\<你>\.mavis\bin` 加到系统 PATH。
 
 ---
 
@@ -77,7 +50,7 @@ mavis mcp ls   # 验证装好了
 ### 1. GUI（推荐）
 
 ```powershell
-D:\sruixu\video2bug\video_to_bug_gui.bat
+D:\sruixu\video_to_bug\video_to_bug_gui.bat
 ```
 
 界面布局：
@@ -88,7 +61,7 @@ D:\sruixu\video2bug\video_to_bug_gui.bat
 ### 2. 命令行（高级）
 
 ```powershell
-cd D:\sruixu\video2bug
+cd D:\sruixu\video_to_bug
 
 # 单个视频
 python video_to_bug.py "D:\录屏\加购失败.mp4" --save
@@ -102,30 +75,15 @@ python video_to_bug.py "D:\录屏\*.mp4" --save
 
 ---
 
-## 安装
+## 工作原理
 
-### Python 3.10+
+工具调用本机 `mavis` CLI → `matrix` MCP 服务的 `videos_understand` 工具分析视频，AI 看完整段录屏后输出结构化 BUG 单。
 
-官网下载安装：https://www.python.org/downloads/（勾选 Add to PATH）
-
-### imageio-ffmpeg（带 ffmpeg）
-
-```powershell
-pip install imageio-ffmpeg imageio
-```
-
-这个包**自带 ffmpeg 静态二进制**（约 80MB），**不用手动装系统 ffmpeg，也不用配 PATH**。
-
-### mavis CLI + matrix MCP
-
-mavis 是 MiniMax 官方的 CLI 工具（自带 matrix MCP 服务）。
-
-1. **下载安装**：打开 [MiniMax 官方下载页](https://agent.minimaxi.com/download)，下载并安装 mavis
-2. **验证装好**：
-   ```powershell
-   mavis --version
-   mavis mcp ls   # 应该看到 matrix 服务，状态 authenticated
-   ```
+**为什么走 MCP**：
+- ✅ **零额外配置** — mavis 自带 matrix MCP 服务，下载即用
+- ✅ **零外部成本** — 用你自己的 mavis/MiniMax 额度
+- ✅ **视频分析精度高** — matrix MCP 视频理解能力比通用视觉模型强
+- ✅ **完全离线运行** — 工具代码里没有任何外部密钥、token、账号
 
 ---
 
@@ -134,7 +92,7 @@ mavis 是 MiniMax 官方的 CLI 工具（自带 matrix MCP 服务）。
 | 报错 | 原因 | 解决 |
 |---|---|---|
 | `mavis: command not found` | mavis CLI 不在 PATH | 装 mavis 或加 `C:\Users\<你>\.mavis\bin` 到 PATH |
-| `tool "videos_understand" not found` | matrix MCP 未注册 | `mavis mcp ls` 检查；没装就 `mavis mcp add matrix ...` |
+| `tool "videos_understand" not found` | matrix MCP 未注册 | `mavis mcp add matrix npx -y @MiniMax/matrix-mcp` |
 | `视频分析失败: ...` | matrix MCP 调用出错 | 看错误信息；可能是网络问题或临时服务不可用 |
 | 跑出来后 AI 输出奇怪 | 模型对 UI 视频理解能力有限 | 重试一次，或检查视频质量 |
 | 窗口看不到「开始处理」按钮 | 窗口太小 | 拉大窗口高度（最小 720px） |
@@ -145,7 +103,7 @@ mavis 是 MiniMax 官方的 CLI 工具（自带 matrix MCP 服务）。
 ## 文件结构
 
 ```
-D:\sruixu\video2bug\
+D:\sruixu\video_to_bug\
 ├── video_to_bug_gui.bat   # GUI 启动器（双击这个）
 ├── video_to_bug_gui.py    # GUI 界面（蓝色主题）
 ├── video_to_bug.py        # 命令行脚本（高级/批量用）
