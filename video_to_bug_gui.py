@@ -22,6 +22,15 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 
+# 拖放支持（可选依赖，没装也能跑）
+try:
+    from tkinterdnd2 import DND_FILES, TkinterDnD
+    DND_AVAILABLE = True
+except ImportError:
+    DND_FILES = None
+    TkinterDnD = None
+    DND_AVAILABLE = False
+
 # 导入后端
 try:
     import video_to_bug as v2b
@@ -78,6 +87,15 @@ class Video2BugApp:
         self.var_output_dir = tk.StringVar(value=str(Path(__file__).parent / "output"))
 
         self._build_ui()
+
+        # 注册拖放：拖视频到窗口任意位置即可添加
+        if DND_AVAILABLE:
+            try:
+                self.root.drop_target_register(DND_FILES)
+                self.root.dnd_bind("<<Drop>>", self._on_drop_window)
+            except Exception:
+                pass
+
         self._poll_queue()
 
     # ---------- 界面构建 ----------
@@ -272,6 +290,39 @@ class Video2BugApp:
             self.video_files = [p for p in self.video_files if str(p) != str(path)]
         self._refresh_tree()
 
+    def _on_drop_window(self, event):
+        """
+        拖放文件到窗口任意位置时触发。
+        支持拖入单文件、多文件、文件夹。
+        """
+        if self.is_processing:
+            return
+        # 解析拖入的数据
+        data = event.data
+        # tkinterdnd2 返回的路径可能用 { } 包裹含空格的路径
+        if data.startswith("{") and data.endswith("}"):
+            data = data[1:-1]
+        # Windows 上用空格分隔多个路径
+        raw_paths = self.root.tk.splitlist(data)
+
+        added = 0
+        for raw in raw_paths:
+            p = str(raw).strip('{}')
+            if os.path.isdir(p):
+                # 拖入文件夹：递归扫描视频
+                videos = v2b.expand_video_inputs(p)
+                for v in videos:
+                    if self._add_video(v):
+                        added += 1
+            else:
+                if self._add_video(p):
+                    added += 1
+
+        if added:
+            self._set_status(f"拖入 {added} 个视频")
+        else:
+            self._set_status("拖入的文件不是视频格式")
+
     # ---------- 事件：开始处理 / 复制 ----------
     def _on_start(self):
         if self.is_processing:
@@ -437,7 +488,11 @@ class Video2BugApp:
 
 # ========== 入口 ==========
 def main():
-    root = tk.Tk()
+    # 如果装了 tkinterdnd2，用它替代 tk.Tk（必须！）
+    if DND_AVAILABLE and TkinterDnD is not None:
+        root = TkinterDnD.Tk()
+    else:
+        root = tk.Tk()
     # ttk 主题
     try:
         style = ttk.Style()
